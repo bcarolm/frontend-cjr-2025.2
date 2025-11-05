@@ -2,8 +2,11 @@
 
 import React, {useState} from 'react'
 import {Eye, EyeOff} from 'lucide-react'
+import {useRouter} from 'next/navigation'
 
 export default function RegisterPage(){
+    const router = useRouter();
+
     const [isVisible, setIsVisible] = useState({
         password:false,
         confirmPassword:false
@@ -17,7 +20,13 @@ export default function RegisterPage(){
     confirmPassword: ''
     });
 
-    const [passwordError, setPasswordError] = useState('');
+    const [errors, setErrors] = useState({
+    nomeCompleto: '',
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+     });
 
     function toggleVisibility(field: 'password'|'confirmPassword') {
         setIsVisible(prev => ({
@@ -27,63 +36,122 @@ export default function RegisterPage(){
     }
 
     function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const { name, value } = event.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+        const {value} = event.target;
+        const name = event.target.name as keyof typeof formData;
+        setFormData(prev => ({
+        ...prev,
+        [name]: value
+        }));
+
+        if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+        
+        if ((name === 'password' || name === 'confirmPassword') && errors.confirmPassword === 'As senhas não são compatíveis') {
+        setErrors(prev => ({ ...prev, confirmPassword: '' }));
+        }
     }
     
     function handleRegister(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+        event.preventDefault();
+        const { nomeCompleto, username, email, password, confirmPassword } = formData;
+        
+        // Regex para validação de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    const { password, confirmPassword } = formData;
+        const newErrors = {
+        nomeCompleto: '',
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+        };
 
-    if (password !== confirmPassword) {
-      setPasswordError('As senhas não são compatíveis');
-      return;
-    }
+        // Validação 1: Campos obrigatórios
+        if (!nomeCompleto) newErrors.nomeCompleto = "Campo obrigatório";
+        if (!username) newErrors.username = "Campo obrigatório";
+        if (!email) newErrors.email = "Campo obrigatório";
+        if (!password) newErrors.password = "Campo obrigatório";
+        if (!confirmPassword) newErrors.confirmPassword = "Campo obrigatório";
 
-    // Se chegou aqui, as senhas batem
-    setPasswordError('');
-    console.log("Cadastro feito!");
-    console.log("Dados do formulário:", formData); 
-    // lógica para enviar para a API
-    }
+        // Validação 2: Formato do E-mail
+        // Só executa se o campo 'email' não estiver vazio
+        if (email && !emailRegex.test(email)) {
+        newErrors.email = "Formato de e-mail inválido";
+        }
+        
+        // Validação 3: Senhas compatíveis
+        // Só executa se ambas as senhas não estiverem vazias
+        if (password && confirmPassword && password !== confirmPassword) {
+        newErrors.confirmPassword = "As senhas não são compatíveis";
+        }
+        setErrors(newErrors);
+        if (Object.values(newErrors).every(error => error === '')) {
+            alert("Cadastro realizado com sucesso!");
+            console.log("Cadastro feito!");
+            console.log("Dados do formulário:", formData);
+            //router.push('/login'); // Direciona para a página de login após o usuário clicar em "ok"
+            
+        } else {
+        console.log("Validação falhou. Erros:", newErrors);
+        }
+  }
 
     return (
         <div className="w-screen h-screen overflow-hidden flex items-center bg-[#f6f3e4]">
             <div className="w-1/2 h-screen pt-35 pl-72">
                 <form 
-                    onSubmit={handleRegister} 
-                    className="w-5/6 h-screen pt-50 px-50 gap-10 rounded-t-[96px] flex flex-col items-center rounded-b-none bg-black">
+                    onSubmit={handleRegister}
+                    noValidate
+                    className="w-5/6 h-screen pt-50 px-50 gap-15 rounded-t-[96px] flex flex-col items-center rounded-b-none bg-black">
                     <h2 className="text-8xl pb-15 text-center font-extrabold font-[League Spartan] text-[#f6f3e4]">
                         CRIE SUA CONTA
                     </h2>
-                    <input 
-                        type="text" 
-                        placeholder="Nome Completo" 
-                        name="nomeCompleto" 
-                        value={formData.nomeCompleto} 
-                        onChange={handleChange} 
-                        className="placeholder-gray-400 text-6xl w-5/6 h-1/16 rounded-full pl-10 bg-[#f6f3e4]">
-                    </input>
-                    <input 
-                        type="text" 
-                        placeholder="Username"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        className="placeholder-gray-400 text-6xl w-5/6 h-1/16 rounded-full pl-10 bg-[#f6f3e4]">
-                    </input>
-                    <input 
-                        type="email" 
-                        placeholder="E-mail"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="placeholder-gray-400 text-6xl w-5/6 h-1/16 rounded-full pl-10 bg-[#f6f3e4]">
-                    </input>
+                    <div className="relative w-5/6 h-1/16">
+                        <input 
+                            type="text" 
+                            placeholder="Nome Completo" 
+                            name="nomeCompleto" 
+                            value={formData.nomeCompleto} 
+                            onChange={handleChange} 
+                            className="placeholder-gray-400 text-6xl w-full h-full rounded-full pl-10 bg-[#f6f3e4]">
+                        </input>
+                        {errors.nomeCompleto && (
+                        <p className="absolute bottom-0 translate-y-full left-10 pt-2 text-red-500 text-4xl font-[League Spartan]">
+                            {errors.nomeCompleto}
+                        </p>
+                        )}
+                    </div>
+                    <div className="relative w-5/6 h-1/16">
+                        <input 
+                            type="text" 
+                            placeholder="Username"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            className="placeholder-gray-400 text-6xl w-full h-full rounded-full pl-10 bg-[#f6f3e4]">
+                        </input>
+                        {errors.username && (
+                        <p className="absolute bottom-0 translate-y-full left-10 pt-2 text-red-500 text-4xl font-[League Spartan]">
+                            {errors.username}
+                        </p>
+                        )}
+                    </div>
+                    <div className="relative w-5/6 h-1/16">
+                        <input 
+                            type="email" 
+                            placeholder="E-mail"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            className="placeholder-gray-400 text-6xl w-full h-full rounded-full pl-10 bg-[#f6f3e4]">
+                        </input>
+                        {errors.email && (
+                        <p className="absolute bottom-0 translate-y-full left-10 pt-2 text-red-500 text-4xl font-[League Spartan]">
+                            {errors.email}
+                        </p>
+                        )}
+                    </div>
                     <div className="relative w-5/6 h-1/16">
                     <input 
                         type={isVisible.password ? "text":"password"} 
@@ -103,6 +171,11 @@ export default function RegisterPage(){
                                 <Eye className="h-12 w-12" />
                             )}
                         </button>
+                        {errors.password && (
+                        <p className="absolute bottom-0 translate-y-full left-10 pt-2 text-red-500 text-4xl font-[League Spartan]">
+                            {errors.password}
+                        </p>
+                        )}
                     </div>
                     <div className="relative w-5/6 h-1/16">
                         <input 
@@ -123,10 +196,10 @@ export default function RegisterPage(){
                                 <Eye className="h-12 w-12" />
                             )}
                         </button>
-                        {passwordError && (
-                            <p className="absolute bottom-0 translate-y-full left-10 pt-6 text-red-500 text-5xl font-[League Spartan]">
-                                {passwordError}
-                            </p>
+                        {errors.confirmPassword && (
+                        <p className="absolute bottom-0 translate-y-full left-10 pt-2 text-red-500 text-4xl font-[League Spartan]">
+                            {errors.confirmPassword}
+                        </p>
                         )}
                     </div>
                     <button 
